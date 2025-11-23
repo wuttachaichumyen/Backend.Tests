@@ -1,11 +1,11 @@
 using Xunit;
 using FluentAssertions;
-using Backend.Controllers;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Backend.Controllers;
 
-namespace Backend.Tests;
-
+namespace Backend.Tests
+{
     public class AuthControllerTests
     {
         private readonly AuthController _controller;
@@ -16,23 +16,22 @@ namespace Backend.Tests;
         }
 
         [Fact]
-        public void Register_ShouldAddUser_WhenUsernameIsNew()
+        public void Register_ShouldSucceed_WhenUsernameIsNew()
         {
-            var user = new User { Username = "testuser", PasswordHash = "123456" };
+            var user = new User { Username = "newuser", PasswordHash = "123456" };
 
             var result = _controller.Register(user);
 
             result.Should().BeOfType<OkObjectResult>();
-            //AuthController.Users.Any(u => u.Username == "testuser").Should().BeTrue();
         }
 
         [Fact]
         public void Register_ShouldFail_WhenUsernameExists()
         {
             var user = new User { Username = "duplicate", PasswordHash = "123456" };
-            _controller.Register(user); // first time
+            _controller.Register(user);
 
-            var result = _controller.Register(user); // second time
+            var result = _controller.Register(user);
 
             result.Should().BeOfType<BadRequestObjectResult>();
         }
@@ -40,16 +39,16 @@ namespace Backend.Tests;
         [Fact]
         public void Login_ShouldReturnToken_WhenCredentialsAreValid()
         {
-              var registerUser = new User { Username = "loginuser", PasswordHash = "123456" };
-                _controller.Register(registerUser);
+            var plainPassword = "123456";
+            var user = new User { Username = "loginuser", PasswordHash = plainPassword };
+            _controller.Register(user);
 
-                // ตอน login ต้องส่ง plain text password เดิม
-                var loginAttempt = new User { Username = "loginuser", PasswordHash = "123456" };
-                var result = _controller.Login(loginAttempt) as OkObjectResult;
+            var loginAttempt = new User { Username = "loginuser", PasswordHash = plainPassword };
+            var result = _controller.Login(loginAttempt) as OkObjectResult;
 
-                result.Should().NotBeNull();
-                var token = result.Value?.GetType().GetProperty("token")?.GetValue(result.Value)?.ToString();
-                token.Should().NotBeNullOrEmpty();
+            result.Should().NotBeNull("Login should succeed with correct credentials");
+            var token = result.Value?.GetType().GetProperty("token")?.GetValue(result.Value)?.ToString();
+            token.Should().NotBeNullOrEmpty("Token should be returned");
         }
 
         [Fact]
@@ -72,4 +71,29 @@ namespace Backend.Tests;
 
             result.Should().BeOfType<UnauthorizedObjectResult>();
         }
+
+        [Fact]
+        public void Me_ShouldReturnUsername_WhenAuthorized()
+        {
+            var user = new User { Username = "meuser", PasswordHash = "123456" };
+            _controller.Register(user);
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+            _controller.ControllerContext.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(new[]
+                {
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "meuser")
+                }, "mock")
+            );
+
+            var result = _controller.Me() as OkObjectResult;
+
+            result.Should().NotBeNull();
+            var username = result.Value?.GetType().GetProperty("username")?.GetValue(result.Value)?.ToString();
+            username.Should().Be("meuser");
+        }
     }
+}

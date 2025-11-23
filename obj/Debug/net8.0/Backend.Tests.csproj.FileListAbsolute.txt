@@ -120,3 +120,4 @@
 /Users/wutachai/Documents/JOBS/Backend.Tests/obj/Debug/net8.0/Backend.Tests.pdb
 /Users/wutachai/Documents/JOBS/Backend.Tests/obj/Debug/net8.0/Backend.Tests.genruntimeconfig.cache
 /Users/wutachai/Documents/JOBS/Backend.Tests/obj/Debug/net8.0/ref/Backend.Tests.dll
+/Users/wutachai/Documents/JOBS/Backend.Tests/obj/Debug/net8.0/Backend.Tests.sourcelink.json
